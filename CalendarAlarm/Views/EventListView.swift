@@ -1,53 +1,45 @@
 import SwiftUI
 import Combine
 
-struct EventListView: View {
+// MARK: - EventListInlineView
+// Renders directly inside ContentView's List — no nested List/ScrollView
+
+struct EventListInlineView: View {
     @EnvironmentObject var calendarManager: CalendarManager
     @EnvironmentObject var notificationManager: NotificationManager
 
     var body: some View {
-        List {
-            if calendarManager.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView("Loading events...")
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            } else if calendarManager.upcomingEvents.isEmpty {
-                emptyState
-            } else {
-                // Group events by day
-                ForEach(groupedEvents, id: \.key) { day, events in
-                    Section {
-                        ForEach(events) { event in
-                            EventRow(
-                                event: event,
-                                isAlarmEnabled: !calendarManager.isEventMuted(event.id),
-                                onToggleAlarm: {
-                                    calendarManager.toggleMute(for: event.id)
-                                    notificationManager.scheduleAlarms(
-                                        for: calendarManager.upcomingEvents,
-                                        mutedIDs: calendarManager.mutedEventIDs
-                                    )
-                                }
-                            )
-                        }
-                    } header: {
-                        Text(day)
-                            .font(.headline)
-                            .foregroundColor(.primary)
+        if calendarManager.isLoading {
+            HStack {
+                Spacer()
+                ProgressView("Loading events...")
+                Spacer()
+            }
+            .listRowBackground(Color.clear)
+        } else if calendarManager.upcomingEvents.isEmpty {
+            emptyState
+        } else {
+            ForEach(groupedEvents, id: \.key) { day, events in
+                Section {
+                    ForEach(events) { event in
+                        EventRow(
+                            event: event,
+                            isAlarmEnabled: !calendarManager.isEventMuted(event.id),
+                            onToggleAlarm: {
+                                calendarManager.toggleMute(for: event.id)
+                                notificationManager.scheduleAlarms(
+                                    for: calendarManager.upcomingEvents,
+                                    mutedIDs: calendarManager.mutedEventIDs
+                                )
+                            }
+                        )
                     }
+                } header: {
+                    Text(day)
+                        .font(.headline)
+                        .foregroundColor(.primary)
                 }
             }
-        }
-        .listStyle(.insetGrouped)
-        .refreshable {
-            calendarManager.forceRefresh()
-            notificationManager.scheduleAlarms(
-                for: calendarManager.upcomingEvents,
-                mutedIDs: calendarManager.mutedEventIDs
-            )
         }
     }
 
@@ -74,15 +66,38 @@ struct EventListView: View {
             event.formattedDate
         }
         return grouped.sorted { first, second in
-            guard let firstEvent = first.value.first, let secondEvent = second.value.first else {
-                return false
-            }
+            guard let firstEvent = first.value.first,
+                  let secondEvent = second.value.first else { return false }
             return firstEvent.startDate < secondEvent.startDate
         }
     }
 }
 
-// MARK: - Event Row
+// MARK: - EventListView (kept for backwards compatibility)
+// This is the original standalone version — keep it if used elsewhere
+
+struct EventListView: View {
+    @EnvironmentObject var calendarManager: CalendarManager
+    @EnvironmentObject var notificationManager: NotificationManager
+
+    var body: some View {
+        List {
+            EventListInlineView()
+                .environmentObject(calendarManager)
+                .environmentObject(notificationManager)
+        }
+        .listStyle(.insetGrouped)
+        .refreshable {
+            calendarManager.forceRefresh()
+            notificationManager.scheduleAlarms(
+                for: calendarManager.upcomingEvents,
+                mutedIDs: calendarManager.mutedEventIDs
+            )
+        }
+    }
+}
+
+// MARK: - Event Row (unchanged from original)
 
 struct EventRow: View {
     let event: CalendarEvent
@@ -142,7 +157,6 @@ struct EventRow: View {
                         .fontWeight(.medium)
                 }
 
-                // Alarm toggle
                 Button {
                     onToggleAlarm()
                 } label: {

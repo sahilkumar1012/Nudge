@@ -6,8 +6,8 @@ struct ContentView: View {
     @EnvironmentObject var notificationManager: NotificationManager
     @EnvironmentObject var alarmState: AlarmState
 
-    @State private var selectedTab = 0
     @State private var showSettings = false
+    @State private var isSyncing = false
 
     var body: some View {
         Group {
@@ -24,29 +24,40 @@ struct ContentView: View {
         }
     }
 
-    @State private var isSyncing = false
-
     private var mainContent: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Header Stats
-                statsHeader
+            List {
+                // Stats + Sync as a non-row header section
+                Section {
+                    statsRow
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
 
-                // Sync Calendar Button
-                syncButton
+                    syncRow
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
 
-                // Event List
-                EventListView()
+                // Events grouped by day — reuses EventListView's logic inline
+                EventListInlineView()
                     .environmentObject(calendarManager)
                     .environmentObject(notificationManager)
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Calendar Alarm")
+            .navigationBarTitleDisplayMode(.large)
+            .refreshable {
+                syncCalendar()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showSettings = true
                     } label: {
                         Image(systemName: "gear")
+                            .fontWeight(.medium)
                     }
                 }
             }
@@ -58,38 +69,86 @@ struct ContentView: View {
         }
     }
 
-    private var syncButton: some View {
-        Button {
-            syncCalendar()
-        } label: {
-            HStack(spacing: 10) {
-                if isSyncing {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                }
-                Text(isSyncing ? "Syncing..." : "Sync Calendar")
-                    .fontWeight(.semibold)
-            }
-            .font(.subheadline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(isSyncing ? Color.gray : Color.blue)
-            .cornerRadius(12)
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
+        HStack(spacing: 10) {
+            StatPill(
+                icon: "calendar",
+                value: "\(calendarManager.todayEvents.count)",
+                label: "Today",
+                color: .blue
+            )
+            StatPill(
+                icon: "bell.fill",
+                value: "\(notificationManager.scheduledCount)",
+                label: "Alarms",
+                color: .orange
+            )
+            StatPill(
+                icon: "clock",
+                value: nextEventTime,
+                label: "Next",
+                color: .green
+            )
         }
-        .disabled(isSyncing)
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(.systemGroupedBackground))
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Sync Row
+
+    private var syncRow: some View {
+        HStack(spacing: 10) {
+            Label(
+                calendarManager.isLoading
+                    ? "Loading..."
+                    : "\(calendarManager.upcomingEvents.count) upcoming events",
+                systemImage: calendarManager.isLoading
+                    ? "arrow.triangle.2.circlepath"
+                    : "checkmark.circle.fill"
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                syncCalendar()
+            } label: {
+                HStack(spacing: 5) {
+                    if isSyncing {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption.weight(.semibold))
+                    }
+                    Text(isSyncing ? "Syncing" : "Sync")
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(isSyncing ? Color.gray : Color.blue)
+                .clipShape(Capsule())
+            }
+            .disabled(isSyncing)
+        }
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Helpers
+
+    private var nextEventTime: String {
+        guard let next = calendarManager.upcomingEvents.first(where: { $0.isUpcoming }) else {
+            return "—"
+        }
+        return next.relativeTimeString
     }
 
     private func syncCalendar() {
         isSyncing = true
         calendarManager.forceRefresh()
-
-        // Brief delay to show the syncing state and let events load
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             notificationManager.scheduleAlarms(
                 for: calendarManager.upcomingEvents,
@@ -98,69 +157,44 @@ struct ContentView: View {
             isSyncing = false
         }
     }
-
-    private var statsHeader: some View {
-        HStack(spacing: 16) {
-            StatCard(
-                icon: "calendar",
-                value: "\(calendarManager.todayEvents.count)",
-                label: "Today",
-                color: .blue
-            )
-
-            StatCard(
-                icon: "bell.fill",
-                value: "\(notificationManager.scheduledCount)",
-                label: "Alarms Set",
-                color: .orange
-            )
-
-            StatCard(
-                icon: "clock",
-                value: nextEventTime,
-                label: "Next Event",
-                color: .green
-            )
-        }
-        .padding()
-        .background(Color(.systemGroupedBackground))
-    }
-
-    private var nextEventTime: String {
-        guard let next = calendarManager.upcomingEvents.first(where: { $0.isUpcoming }) else {
-            return "—"
-        }
-        return next.relativeTimeString
-    }
 }
 
-// MARK: - Stat Card
+// MARK: - Stat Pill
 
-struct StatCard: View {
+struct StatPill: View {
     let icon: String
     let value: String
     let label: String
     let color: Color
 
     var body: some View {
-        VStack(spacing: 6) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(.subheadline)
                 .foregroundColor(color)
+                .frame(width: 30, height: 30)
+                .background(color.opacity(0.12))
+                .clipShape(Circle())
 
-            Text(value)
-                .font(.title3.bold())
-                .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.subheadline.bold())
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(label)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
 
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .cornerRadius(10)
+        .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+        .frame(maxWidth: .infinity)
     }
 }
 

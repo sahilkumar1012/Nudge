@@ -23,7 +23,7 @@ import Combine
 // to AlarmMetadata. We store the event ID and calendar name so we can
 // identify which event an alarm belongs to.
 // Must be nonisolated to satisfy AlarmMetadata protocol in Xcode 26.
-nonisolated struct CalendarAlarmMetadata: AlarmMetadata {
+nonisolated struct NudgeAlarmMetadata: AlarmMetadata {
     var eventId: String
     var calendarName: String
 }
@@ -135,7 +135,7 @@ class NotificationManager: ObservableObject {
     // This configures the full alarm experience: title, buttons, tint color,
     // snooze duration, and the exact trigger time.
     private func scheduleAlarmKitAlarm(for event: CalendarEvent, triggerDate: Date) async {
-        typealias AlarmConfiguration = AlarmManager.AlarmConfiguration<CalendarAlarmMetadata>
+        typealias AlarmConfiguration = AlarmManager.AlarmConfiguration<NudgeAlarmMetadata>
 
         let alarmID = UUID()
 
@@ -161,7 +161,7 @@ class NotificationManager: ObservableObject {
         )
 
         // Alarm attributes: visual presentation + calendar-colored tint
-        let attributes = AlarmAttributes<CalendarAlarmMetadata>(
+        let attributes = AlarmAttributes<NudgeAlarmMetadata>(
             presentation: AlarmPresentation(alert: alertPresentation),
             tintColor: Color(event.calendarColor)
         )
@@ -213,7 +213,7 @@ class NotificationManager: ObservableObject {
                 title: "🔔 Test Alarm",
                 startDate: Date().addingTimeInterval(5),
                 endDate: Date().addingTimeInterval(65),
-                calendarName: "Calendar Alarm",
+                calendarName: "Nudge",
                 calendarColor: .red,
                 location: nil,
                 notes: "This is a test alarm to preview the experience.",

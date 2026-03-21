@@ -58,7 +58,7 @@ struct ContentView: View {
                     .environmentObject(notificationManager)
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Calendar Alarm")
+            .navigationTitle("Nudge")
             .navigationBarTitleDisplayMode(.large)
             .refreshable {
                 syncCalendar()

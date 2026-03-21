@@ -26,7 +26,7 @@ struct PermissionsView: View {
                 .foregroundStyle(.red, .orange)
                 .symbolEffect(.bounce, options: .repeating.speed(0.5))
 
-            Text("Calendar Alarm")
+            Text("Nudge")
                 .font(.largeTitle.bold())
 
             Text("Never miss a meeting again.\nGet loud alarm reminders for every calendar event.")

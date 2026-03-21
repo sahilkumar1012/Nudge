@@ -25,13 +25,13 @@ import Combine
 
 class BackgroundSyncManager {
     static let shared = BackgroundSyncManager()
-    static let taskIdentifier = "com.calendaralarm.morningsync"
+    static let taskIdentifier = "com.nudge.morningsync"
 
     private init() {}
 
     // MARK: - Registration
     // Called once at app startup to tell iOS about our background task.
-    // Must be called before the app finishes launching (in CalendarAlarmApp.init).
+    // Must be called before the app finishes launching (in NudgeApp.init).
 
     func registerBackgroundTask() {
         BGTaskScheduler.shared.register(

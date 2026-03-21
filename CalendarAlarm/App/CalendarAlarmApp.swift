@@ -3,7 +3,7 @@ import BackgroundTasks
 import Combine
 
 // =============================================================================
-// CalendarAlarmApp — The app entry point.
+// NudgeApp — The app entry point.
 //
 // FLOW:
 // 1. On launch: registers the background sync task and creates the two managers
@@ -14,7 +14,7 @@ import Combine
 // =============================================================================
 
 @main
-struct CalendarAlarmApp: App {
+struct NudgeApp: App {
     // CalendarManager: reads events from the phone's calendar
     @StateObject private var calendarManager = CalendarManager()
     // NotificationManager: schedules AlarmKit alarms for those events

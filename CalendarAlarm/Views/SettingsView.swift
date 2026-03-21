@@ -175,7 +175,7 @@ struct SettingsView: View {
                 } header: {
                     Label("About", systemImage: "info.circle")
                 } footer: {
-                    Text("Calendar Alarm reads your events and triggers reminders so you never miss a meeting.")
+                    Text("Nudge reads your events and triggers alarms so you never miss a meeting.")
                 }
             }
             .navigationTitle("Settings")

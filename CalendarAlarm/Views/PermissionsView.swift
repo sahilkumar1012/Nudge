@@ -18,7 +18,7 @@ struct PermissionsView: View {
             Text("Calendar Alarm")
                 .font(.largeTitle.bold())
 
-            Text("Never miss a meeting again.\nGet loud, in-your-face reminders for every calendar event.")
+            Text("Never miss a meeting again.\nGet loud alarm reminders for every calendar event.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

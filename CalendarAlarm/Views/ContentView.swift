@@ -4,7 +4,6 @@ import Combine
 struct ContentView: View {
     @EnvironmentObject var calendarManager: CalendarManager
     @EnvironmentObject var notificationManager: NotificationManager
-    @EnvironmentObject var alarmState: AlarmState
 
     @State private var showSettings = false
     @State private var isSyncing = false
@@ -202,5 +201,4 @@ struct StatPill: View {
     ContentView()
         .environmentObject(CalendarManager())
         .environmentObject(NotificationManager())
-        .environmentObject(AlarmState())
 }

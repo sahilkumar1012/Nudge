@@ -126,6 +126,12 @@ struct SettingsView: View {
                 // Actions
                 Section {
                     Button {
+                        notificationManager.scheduleTestAlarm()
+                    } label: {
+                        Label("Test Alarm (fires in 5 sec)", systemImage: "bell.and.waves.left.and.right")
+                    }
+
+                    Button {
                         calendarManager.forceRefresh()
                         notificationManager.scheduleAlarms(
                             for: calendarManager.upcomingEvents,
@@ -142,6 +148,8 @@ struct SettingsView: View {
                     }
                 } header: {
                     Label("Actions", systemImage: "gear")
+                } footer: {
+                    Text("Test Alarm schedules a real AlarmKit alarm that fires in 5 seconds so you can experience exactly how event alarms will look and sound.")
                 }
 
                 // About

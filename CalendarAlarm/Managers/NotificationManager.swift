@@ -165,6 +165,25 @@ class NotificationManager: ObservableObject {
         }
     }
 
+    // MARK: - Test Alarm
+
+    func scheduleTestAlarm() {
+        Task {
+            let testEvent = CalendarEvent(
+                id: "test_alarm_\(UUID().uuidString)",
+                title: "🔔 Test Alarm",
+                startDate: Date().addingTimeInterval(5), // fires in 5 seconds
+                endDate: Date().addingTimeInterval(65),
+                calendarName: "Calendar Alarm",
+                calendarColor: .red,
+                location: nil,
+                notes: "This is a test alarm to preview the experience.",
+                isAllDay: false
+            )
+            await scheduleAlarmKitAlarm(for: testEvent, triggerDate: Date().addingTimeInterval(5))
+        }
+    }
+
     // MARK: - Cancel
 
     func cancelAlarm(for eventId: String) {

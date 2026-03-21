@@ -1,6 +1,17 @@
 import SwiftUI
 import Combine
 
+// =============================================================================
+// PermissionsView — Shown on first launch (or if permissions are revoked).
+//
+// The app needs two permissions to work:
+// 1. Calendar Access — to read events from the user's phone calendar
+// 2. Alarm/Notification Permission — so AlarmKit can fire alarms
+//
+// Each permission is shown as a tappable card. Once both are granted,
+// a "Get Started" button appears which triggers the first event sync.
+// =============================================================================
+
 struct PermissionsView: View {
     @EnvironmentObject var calendarManager: CalendarManager
     @EnvironmentObject var notificationManager: NotificationManager
@@ -15,10 +26,10 @@ struct PermissionsView: View {
                 .foregroundStyle(.red, .orange)
                 .symbolEffect(.bounce, options: .repeating.speed(0.5))
 
-            Text("Calendar Alarm")
+            Text("Nudge")
                 .font(.largeTitle.bold())
 
-            Text("Never miss a meeting again.\nGet loud, in-your-face reminders for every calendar event.")
+            Text("Never miss a meeting again.\nGet loud alarm reminders for every calendar event.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -72,7 +83,8 @@ struct PermissionsView: View {
     }
 }
 
-// MARK: - Permission Card
+// PermissionCard — A tappable card for a single permission request.
+// Shows icon, title, description, and a checkmark when granted.
 
 struct PermissionCard: View {
     let icon: String

@@ -1,8 +1,14 @@
 import SwiftUI
 import Combine
 
-// MARK: - EventListInlineView
-// Renders directly inside ContentView's List — no nested List/ScrollView
+// =============================================================================
+// EventListInlineView — Renders calendar events grouped by day.
+//
+// This is embedded INSIDE ContentView's List (not a standalone screen).
+// Events are grouped by their date ("Today", "Tomorrow", "Friday, Mar 21").
+// Each event shows: title, time, location, calendar badge, and a bell icon
+// to mute/unmute the alarm for that specific event.
+// =============================================================================
 
 struct EventListInlineView: View {
     @EnvironmentObject var calendarManager: CalendarManager
@@ -61,6 +67,7 @@ struct EventListInlineView: View {
         .listRowBackground(Color.clear)
     }
 
+    // Group events by their formatted date for section headers
     private var groupedEvents: [(key: String, value: [CalendarEvent])] {
         let grouped = Dictionary(grouping: calendarManager.upcomingEvents) { event in
             event.formattedDate
@@ -73,8 +80,8 @@ struct EventListInlineView: View {
     }
 }
 
-// MARK: - EventListView (kept for backwards compatibility)
-// This is the original standalone version — keep it if used elsewhere
+// EventListView — Standalone wrapper (kept for backward compatibility)
+// Wraps EventListInlineView in its own List with pull-to-refresh.
 
 struct EventListView: View {
     @EnvironmentObject var calendarManager: CalendarManager
@@ -97,7 +104,10 @@ struct EventListView: View {
     }
 }
 
-// MARK: - Event Row (unchanged from original)
+// =============================================================================
+// EventRow — A single event row showing title, time, location, calendar, and
+// a bell icon to toggle the alarm on/off for this specific event.
+// =============================================================================
 
 struct EventRow: View {
     let event: CalendarEvent

@@ -1,6 +1,18 @@
 import SwiftUI
 import Combine
 
+// =============================================================================
+// SettingsView — The settings screen, accessible via the gear icon.
+//
+// Sections:
+// 1. Alarm Settings — lead time (how early to fire), snooze duration, all-day toggle
+// 2. Calendar — how many days ahead to look for events
+// 3. Morning Sync — enable/disable daily auto-sync and configure the time
+// 4. Status — shows current alarm count and permission status
+// 5. Actions — test alarm, refresh, and remove all alarms
+// 6. About — app version
+// =============================================================================
+
 struct SettingsView: View {
     @EnvironmentObject var calendarManager: CalendarManager
     @EnvironmentObject var notificationManager: NotificationManager
@@ -57,13 +69,11 @@ struct SettingsView: View {
                         Text("1 day").tag(1)
                         Text("3 days").tag(3)
                         Text("7 days").tag(7)
-                        Text("14 days").tag(14)
-                        Text("30 days").tag(30)
                     }
                 } header: {
                     Label("Calendar", systemImage: "calendar")
                 } footer: {
-                    Text("How far ahead to look for events. iOS limits to 64 pending notifications.")
+                    Text("How far ahead to look for events. Maximum 7 days.")
                 }
 
                 // Morning Sync
@@ -126,6 +136,12 @@ struct SettingsView: View {
                 // Actions
                 Section {
                     Button {
+                        notificationManager.scheduleTestAlarm()
+                    } label: {
+                        Label("Test Alarm (fires in 5 sec)", systemImage: "bell.and.waves.left.and.right")
+                    }
+
+                    Button {
                         calendarManager.forceRefresh()
                         notificationManager.scheduleAlarms(
                             for: calendarManager.upcomingEvents,
@@ -142,6 +158,8 @@ struct SettingsView: View {
                     }
                 } header: {
                     Label("Actions", systemImage: "gear")
+                } footer: {
+                    Text("Test Alarm schedules a real AlarmKit alarm that fires in 5 seconds so you can experience exactly how event alarms will look and sound.")
                 }
 
                 // About
@@ -155,7 +173,7 @@ struct SettingsView: View {
                 } header: {
                     Label("About", systemImage: "info.circle")
                 } footer: {
-                    Text("Calendar Alarm reads your events and triggers reminders so you never miss a meeting.")
+                    Text("Nudge reads your events and triggers alarms so you never miss a meeting.")
                 }
             }
             .navigationTitle("Settings")

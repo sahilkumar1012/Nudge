@@ -74,5 +74,14 @@
         <string>calshow</string>
     </array>
 
+    <!-- Spotlight search: NSUserActivity types the app donates.
+         This tells iOS which activities Nudge supports so it can show
+         the app in Spotlight suggestions when users search "calendar", etc. -->
+    <key>NSUserActivityTypes</key>
+    <array>
+        <string>com.nudge.viewCalendar</string>
+        <string>com.nudge.meetingAlarm</string>
+    </array>
+
 </dict>
 </plist>

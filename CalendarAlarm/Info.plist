@@ -5,7 +5,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Calendar Alarm</string>
+    <string>Nudge</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -43,9 +43,13 @@
 
     <!-- Privacy descriptions -->
     <key>NSCalendarsUsageDescription</key>
-    <string>Calendar Alarm needs access to your calendars to read events and schedule alarms for each one so you never miss a meeting.</string>
+    <string>Nudge needs access to your calendars to read events and schedule alarms so you never miss a meeting.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Calendar Alarm needs full access to your calendars to read all events and schedule alarms so you never miss a meeting.</string>
+    <string>Nudge needs full access to your calendars to read all events and schedule alarms so you never miss a meeting.</string>
+
+    <!-- AlarmKit permission -->
+    <key>NSAlarmKitUsageDescription</key>
+    <string>Nudge needs alarm access to alert you when your meetings are about to start.</string>
 
     <!-- Background modes -->
     <key>UIBackgroundModes</key>
@@ -57,10 +61,18 @@
     <!-- Background task identifiers -->
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
-        <string>com.calendaralarm.morningsync</string>
+        <string>com.nudge.morningsync</string>
     </array>
-    <key>NSAlarmKitUsageDescription</key>
-    <string>CalendarAlarm needs alarm access to alert you when your meetings are about to start.</string>
-    
+
+    <!-- Spotlight search keywords: makes the app appear when user searches
+         for "calendar", "alarm", "meeting", "event", etc. in iOS Spotlight.
+         This is how Teams, Google Calendar, etc. show up in search results. -->
+    <key>CFBundleSpokenName</key>
+    <string>Nudge</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>calshow</string>
+    </array>
+
 </dict>
 </plist>

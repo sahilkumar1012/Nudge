@@ -322,12 +322,24 @@ class NotificationManager: ObservableObject {
         }
     }
 
-    // Cancel ALL scheduled alarms — both in-memory AND persisted from previous sessions.
+    // Cancel ALL scheduled alarms — including orphaned alarms from previous sessions
+    // that we may not have in our tracking dictionary.
+    // Reads the current alarm list directly from AlarmKit and cancels everything.
     func removeAllAlarms() async {
-        // Cancel every alarm we know about (from this session + loaded from UserDefaults)
+        // First: cancel everything in our tracking dictionary
         for (_, alarmID) in scheduledAlarms {
             try? await alarmManager.stop(id: alarmID)
         }
+
+        // Second: cancel ANY orphaned alarms we don't know about.
+        // This catches alarms from sessions before we started persisting IDs.
+        for await currentAlarms in alarmManager.alarmUpdates {
+            for alarm in currentAlarms {
+                try? await alarmManager.stop(id: alarm.id)
+            }
+            break  // Read one snapshot only — don't loop forever
+        }
+
         scheduledAlarms.removeAll()
         clearPersistedAlarmIDs()
         scheduledCount = 0

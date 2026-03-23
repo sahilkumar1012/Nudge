@@ -50,7 +50,7 @@ struct PermissionsView: View {
                 PermissionCard(
                     icon: "bell.fill",
                     title: "Notifications",
-                    description: "Send alarm notifications when events start",
+                    description: "Alarm notification when events start",
                     isGranted: notificationManager.isAuthorized,
                     action: { Task { await notificationManager.requestAuthorization() } }                )
             }

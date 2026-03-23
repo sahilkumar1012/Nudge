@@ -79,15 +79,9 @@ struct ContentView: View {
                     Button {
                         showSettings = true
                     } label: {
-                        ZStack {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 36, height: 36)
-                                .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                        }
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.secondary)
                     }
                 }
             }

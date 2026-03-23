@@ -4,14 +4,12 @@ import Combine
 // =============================================================================
 // ContentView — The main screen of the app.
 //
-// FLOW:
-// 1. If permissions are missing → shows PermissionsView
-// 2. If permissions are granted → shows the event list with:
-//    - Stat pills (Today count, Alarms count, Next event time)
-//    - Sync button to manually refresh events + reschedule alarms
-//    - The event list grouped by day (via EventListInlineView)
-//    - Settings button (gear icon) in the navigation bar
-// 3. Pull-to-refresh is supported
+// REDESIGN NOTES:
+// - Replaced flat StatPill with a compact hero card showing all 3 stats inline
+// - Added gradient accent header with app icon + title inline with settings
+// - Sync row now uses a subtle surface card instead of raw HStack
+// - StatPill labels are now single-line with truncation-safe sizing
+// - Soft depth via layered shadows and background materials
 // =============================================================================
 
 struct ContentView: View {
@@ -38,26 +36,39 @@ struct ContentView: View {
 
     private var mainContent: some View {
         NavigationStack {
-            List {
-                // Stats + Sync as a non-row header section
-                Section {
-                    statsRow
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+            ZStack(alignment: .top) {
+                // Subtle gradient backdrop behind the header area
+                LinearGradient(
+                    colors: [Color.blue.opacity(0.08), Color.clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 220)
+                .ignoresSafeArea(edges: .top)
 
-                    syncRow
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                List {
+                    // Stats card — full-width, single card row
+                    Section {
+                        statsCard
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+
+                        syncRow
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+
+                    // Events grouped by day
+                    EventListInlineView()
+                        .environmentObject(calendarManager)
+                        .environmentObject(notificationManager)
                 }
-
-                // Events grouped by day — reuses EventListView's logic inline
-                EventListInlineView()
-                    .environmentObject(calendarManager)
-                    .environmentObject(notificationManager)
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
             }
-            .listStyle(.insetGrouped)
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Nudge")
             .navigationBarTitleDisplayMode(.large)
             .refreshable {
@@ -68,8 +79,9 @@ struct ContentView: View {
                     Button {
                         showSettings = true
                     } label: {
-                        Image(systemName: "gear")
-                            .fontWeight(.medium)
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -81,46 +93,61 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Stats Row
+    // MARK: - Stats Card (replaces three loose StatPills)
 
-    private var statsRow: some View {
-        HStack(spacing: 10) {
-            StatPill(
+    private var statsCard: some View {
+        HStack(spacing: 0) {
+            StatCell(
                 icon: "calendar",
                 value: "\(calendarManager.todayEvents.count)",
                 label: "Today",
                 color: .blue
             )
-            StatPill(
+
+            Divider()
+                .frame(height: 36)
+                .padding(.vertical, 4)
+
+            StatCell(
                 icon: "bell.fill",
                 value: "\(notificationManager.scheduledCount)",
                 label: "Alarms",
                 color: .orange
             )
-            StatPill(
-                icon: "clock",
+
+            Divider()
+                .frame(height: 36)
+                .padding(.vertical, 4)
+
+            StatCell(
+                icon: "clock.fill",
                 value: nextEventTime,
                 label: "Next",
                 color: .green
             )
         }
-        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.background)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 3)
     }
 
     // MARK: - Sync Row
 
     private var syncRow: some View {
         HStack(spacing: 10) {
-            Label(
-                calendarManager.isLoading
-                    ? "Loading..."
-                    : "\(calendarManager.upcomingEvents.count) upcoming events",
-                systemImage: calendarManager.isLoading
+            HStack(spacing: 6) {
+                Image(systemName: calendarManager.isLoading
                     ? "arrow.triangle.2.circlepath"
-                    : "checkmark.circle.fill"
-            )
-            .font(.caption)
-            .foregroundColor(.secondary)
+                    : "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(calendarManager.isLoading ? .orange : .green)
+                Text(calendarManager.isLoading
+                    ? "Loading..."
+                    : "\(calendarManager.upcomingEvents.count) upcoming event\(calendarManager.upcomingEvents.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
@@ -133,25 +160,34 @@ struct ContentView: View {
                             .tint(.white)
                     } else {
                         Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.caption.weight(.semibold))
+                            .font(.caption.weight(.bold))
                     }
-                    Text(isSyncing ? "Syncing" : "Sync")
+                    Text(isSyncing ? "Syncing…" : "Sync")
                         .font(.caption.weight(.semibold))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(isSyncing ? Color.gray : Color.blue)
+                .padding(.vertical, 8)
+                .background(
+                    isSyncing
+                        ? AnyShapeStyle(Color.gray)
+                        : AnyShapeStyle(
+                            LinearGradient(
+                                colors: [Color.blue, Color.blue.opacity(0.75)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
                 .clipShape(Capsule())
+                .shadow(color: .blue.opacity(isSyncing ? 0 : 0.30), radius: 6, y: 3)
             }
             .disabled(isSyncing)
         }
-        .padding(.horizontal, 16)
     }
 
     // MARK: - Helpers
 
-    // Finds the next upcoming event and returns a friendly string like "In 30 mins"
     private var nextEventTime: String {
         guard let next = calendarManager.upcomingEvents.first(where: { $0.isUpcoming }) else {
             return "—"
@@ -159,10 +195,6 @@ struct ContentView: View {
         return next.relativeTimeString
     }
 
-    // Called by the Sync button and pull-to-refresh.
-    // 1. Refreshes events from the calendar
-    // 2. Waits 1 second (for UI to update)
-    // 3. Reschedules all alarms based on the fresh event list
     private func syncCalendar() {
         isSyncing = true
         calendarManager.forceRefresh()
@@ -176,9 +208,44 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Stat Pill
+// MARK: - Stat Cell (used inside the unified stats card)
 
-// StatPill — A small rounded card showing a stat (e.g. "3 Today", "5 Alarms")
+/// One third of the stats card. Icon + value + label stacked vertically.
+struct StatCell: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.12))
+                    .frame(width: 34, height: 34)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+
+            Text(value)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .textCase(.uppercase)
+                .tracking(0.5)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Backwards-compat StatPill (kept for any other callsites)
+
 struct StatPill: View {
     let icon: String
     let value: String
@@ -203,6 +270,7 @@ struct StatPill: View {
                 Text(label)
                     .font(.caption2)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer(minLength: 0)

@@ -60,11 +60,12 @@ struct PermissionsView: View {
 
             if calendarManager.authorizationStatus.isGranted && notificationManager.isAuthorized {
                 Button {
-                    calendarManager.fetchEvents()
-                    notificationManager.scheduleAlarms(
-                        for: calendarManager.upcomingEvents,
-                        mutedIDs: calendarManager.mutedEventIDs
-                    )
+                    calendarManager.fetchEvents {
+                        notificationManager.scheduleAlarms(
+                            for: calendarManager.upcomingEvents,
+                            mutedIDs: calendarManager.mutedEventIDs
+                        )
+                    }
                 } label: {
                     Text("Get Started")
                         .font(.headline)

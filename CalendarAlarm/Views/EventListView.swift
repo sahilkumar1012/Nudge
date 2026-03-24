@@ -67,10 +67,10 @@ struct EventListInlineView: View {
         .listRowBackground(Color.clear)
     }
 
-    // Group events by their formatted date for section headers
+    // Group events by day, using friendly labels ("Today", "Tomorrow", etc.)
     private var groupedEvents: [(key: String, value: [CalendarEvent])] {
         let grouped = Dictionary(grouping: calendarManager.upcomingEvents) { event in
-            event.formattedDate
+            event.startDate.relativeDayString
         }
         return grouped.sorted { first, second in
             guard let firstEvent = first.value.first,
@@ -80,29 +80,6 @@ struct EventListInlineView: View {
     }
 }
 
-// EventListView — Standalone wrapper (kept for backward compatibility)
-// Wraps EventListInlineView in its own List with pull-to-refresh.
-
-struct EventListView: View {
-    @EnvironmentObject var calendarManager: CalendarManager
-    @EnvironmentObject var notificationManager: NotificationManager
-
-    var body: some View {
-        List {
-            EventListInlineView()
-                .environmentObject(calendarManager)
-                .environmentObject(notificationManager)
-        }
-        .listStyle(.insetGrouped)
-        .refreshable {
-            calendarManager.forceRefresh()
-            notificationManager.scheduleAlarms(
-                for: calendarManager.upcomingEvents,
-                mutedIDs: calendarManager.mutedEventIDs
-            )
-        }
-    }
-}
 
 // =============================================================================
 // EventRow — A single event row showing title, time, location, calendar, and
@@ -184,7 +161,9 @@ struct EventRow: View {
 }
 
 #Preview {
-    EventListView()
-        .environmentObject(CalendarManager())
-        .environmentObject(NotificationManager())
+    List {
+        EventListInlineView()
+            .environmentObject(CalendarManager())
+            .environmentObject(NotificationManager())
+    }
 }

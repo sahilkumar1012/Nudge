@@ -79,7 +79,7 @@ struct SettingsView: View {
                 // Morning Sync
                 Section {
                     Toggle("Sync Every Morning", isOn: $morningSyncEnabled)
-                        .onChange(of: morningSyncEnabled) { enabled in
+                        .onChange(of: morningSyncEnabled) { _, enabled in
                             if enabled {
                                 BackgroundSyncManager.shared.scheduleMorningSyncIfEnabled()
                             } else {
@@ -93,7 +93,7 @@ struct SettingsView: View {
                             selection: $morningSyncTime,
                             displayedComponents: .hourAndMinute
                         )
-                        .onChange(of: morningSyncTime) { newTime in
+                        .onChange(of: morningSyncTime) { _, newTime in
                             let comps = Calendar.current.dateComponents([.hour, .minute], from: newTime)
                             UserDefaults.standard.set(comps.hour ?? 7, forKey: "morningSyncHour")
                             UserDefaults.standard.set(comps.minute ?? 0, forKey: "morningSyncMinute")
@@ -142,11 +142,12 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        calendarManager.forceRefresh()
-                        notificationManager.scheduleAlarms(
-                            for: calendarManager.upcomingEvents,
-                            mutedIDs: calendarManager.mutedEventIDs
-                        )
+                        calendarManager.forceRefresh {
+                            notificationManager.scheduleAlarms(
+                                for: calendarManager.upcomingEvents,
+                                mutedIDs: calendarManager.mutedEventIDs
+                            )
+                        }
                     } label: {
                         Label("Refresh & Reschedule All Alarms", systemImage: "arrow.clockwise")
                     }
@@ -178,18 +179,33 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: lookAheadDays) { _, _ in reschedule() }
+            .onChange(of: alarmLeadTimeMinutes) { _, _ in reschedule() }
+            .onChange(of: snoozeMinutes) { _, _ in reschedule() }
+            .onChange(of: includeAllDayEvents) { _, _ in reschedule() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
-                        calendarManager.forceRefresh()
-                        notificationManager.scheduleAlarms(
-                            for: calendarManager.upcomingEvents,
-                            mutedIDs: calendarManager.mutedEventIDs
-                        )
+                        calendarManager.forceRefresh {
+                            notificationManager.scheduleAlarms(
+                                for: calendarManager.upcomingEvents,
+                                mutedIDs: calendarManager.mutedEventIDs
+                            )
+                        }
                         dismiss()
                     }
                 }
             }
+        }
+    }
+
+    // Re-fetch events and reschedule alarms when any setting changes
+    private func reschedule() {
+        calendarManager.forceRefresh {
+            notificationManager.scheduleAlarms(
+                for: calendarManager.upcomingEvents,
+                mutedIDs: calendarManager.mutedEventIDs
+            )
         }
     }
 }

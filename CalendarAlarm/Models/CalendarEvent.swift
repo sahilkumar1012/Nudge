@@ -23,6 +23,20 @@ struct CalendarEvent: Identifiable, Equatable {
     let notes: String?          // Optional event notes
     let isAllDay: Bool          // Whether this is an all-day event (we skip alarms for these)
 
+    // Shared formatters (DateFormatter is expensive to create)
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .none
+        return f
+    }()
+
     // Returns true if the event is currently happening (we're between start and end time)
     var isHappeningNow: Bool {
         let now = Date()
@@ -44,17 +58,12 @@ struct CalendarEvent: Identifiable, Equatable {
         if isAllDay {
             return "All Day"
         }
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return "\(formatter.string(from: startDate)) – \(formatter.string(from: endDate))"
+        return "\(Self.timeFormatter.string(from: startDate)) – \(Self.timeFormatter.string(from: endDate))"
     }
 
     // Human-readable date, e.g. "Mar 21, 2026"
     var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: startDate)
+        Self.dateFormatter.string(from: startDate)
     }
 
     // Friendly relative time like "In 30 mins", "In 2 hrs", "Now"

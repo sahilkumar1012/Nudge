@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 // =============================================================================
 // Date+Extensions — Convenience helpers used throughout the app.
@@ -9,6 +8,19 @@ import Combine
 // =============================================================================
 
 extension Date {
+    // Shared formatters
+    private static let shortTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f
+    }()
+
     // Midnight at the start of this date (e.g. Mar 21 00:00:00)
     var startOfDay: Date {
         Calendar.current.startOfDay(for: self)
@@ -31,18 +43,13 @@ extension Date {
 
     // Short time string like "10:30 AM"
     var shortTimeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: self)
+        Self.shortTimeFormatter.string(from: self)
     }
 
     // Friendly day label: "Today", "Tomorrow", or "Friday, Mar 21"
     var relativeDayString: String {
         if isToday { return "Today" }
         if isTomorrow { return "Tomorrow" }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        return formatter.string(from: self)
+        return Self.dayFormatter.string(from: self)
     }
 }

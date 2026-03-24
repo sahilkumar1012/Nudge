@@ -2,7 +2,6 @@ import BackgroundTasks
 import EventKit
 import UserNotifications
 import SwiftUI
-import Combine
 
 // =============================================================================
 // BackgroundSyncManager — Syncs calendar events automatically every morning.
@@ -137,28 +136,34 @@ class BackgroundSyncManager {
         center.removeAllPendingNotificationRequests()
 
         let alarmLeadTime = UserDefaults.standard.integer(forKey: "alarmLeadTimeMinutes")
-        let soundEnabled = UserDefaults.standard.object(forKey: "alarmSoundEnabled") as? Bool ?? true
+
+        let includeAllDay = UserDefaults.standard.bool(forKey: "includeAllDayEvents")
 
         // Schedule a local notification for each qualifying event
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
         var count = 0
         for ekEvent in events {
-            guard !ekEvent.isAllDay else { continue }   // Skip all-day events
+            guard includeAllDay || !ekEvent.isAllDay else { continue }   // Skip all-day unless enabled
 
             let eventId = ekEvent.eventIdentifier ?? UUID().uuidString
             guard !mutedIDs.contains(eventId) else { continue }   // Skip muted events
 
             // Calculate when the notification should fire
             let startDate = ekEvent.startDate ?? now
-            let triggerDate = startDate.addingTimeInterval(-Double(alarmLeadTime * 60))
+            var effectiveStart = startDate
+            if ekEvent.isAllDay {
+                if let morning = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: startDate) {
+                    effectiveStart = morning
+                }
+            }
+            let triggerDate = effectiveStart.addingTimeInterval(-Double(alarmLeadTime * 60))
             guard triggerDate > now else { continue }    // Skip past events
             guard count < 64 else { break }              // iOS limit: 64 pending notifications
 
             // Build the notification content
             let content = UNMutableNotificationContent()
             content.title = "🔔 \(ekEvent.title ?? "Event")"
-
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
             content.subtitle = formatter.string(from: startDate)
 
             var bodyParts: [String] = []
@@ -168,8 +173,8 @@ class BackgroundSyncManager {
 
             content.categoryIdentifier = "ALARM_CATEGORY"
             content.userInfo = ["eventId": eventId]
-            content.interruptionLevel = .timeSensitive   // Breaks through Focus modes
-            if soundEnabled { content.sound = .defaultCritical }
+            content.interruptionLevel = .timeSensitive
+            content.sound = .defaultCritical
 
             // Schedule the notification at the exact trigger time
             let comps = Calendar.current.dateComponents(

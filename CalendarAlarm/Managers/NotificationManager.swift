@@ -171,7 +171,14 @@ class NotificationManager: ObservableObject {
             }
 
             let eventsWithTriggers = eligibleEvents.compactMap { event -> EventWithTrigger? in
-                let trigger = event.startDate.addingTimeInterval(-leadSeconds)
+                var effectiveStart = event.startDate
+                // All-day events start at midnight — fire alarm at 8 AM instead
+                if event.isAllDay {
+                    if let morning = Foundation.Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: event.startDate) {
+                        effectiveStart = morning
+                    }
+                }
+                let trigger = effectiveStart.addingTimeInterval(-leadSeconds)
                 guard trigger > now else { return nil }  // Skip past triggers
                 return EventWithTrigger(event: event, triggerDate: trigger)
             }

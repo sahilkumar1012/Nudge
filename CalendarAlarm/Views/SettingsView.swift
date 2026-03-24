@@ -179,6 +179,10 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: lookAheadDays) { _, _ in reschedule() }
+            .onChange(of: alarmLeadTimeMinutes) { _, _ in reschedule() }
+            .onChange(of: snoozeMinutes) { _, _ in reschedule() }
+            .onChange(of: includeAllDayEvents) { _, _ in reschedule() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -192,6 +196,16 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    // Re-fetch events and reschedule alarms when any setting changes
+    private func reschedule() {
+        calendarManager.forceRefresh {
+            notificationManager.scheduleAlarms(
+                for: calendarManager.upcomingEvents,
+                mutedIDs: calendarManager.mutedEventIDs
+            )
         }
     }
 }

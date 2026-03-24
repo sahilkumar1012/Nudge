@@ -149,7 +149,13 @@ class BackgroundSyncManager {
 
             // Calculate when the notification should fire
             let startDate = ekEvent.startDate ?? now
-            let triggerDate = startDate.addingTimeInterval(-Double(alarmLeadTime * 60))
+            var effectiveStart = startDate
+            if ekEvent.isAllDay {
+                if let morning = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: startDate) {
+                    effectiveStart = morning
+                }
+            }
+            let triggerDate = effectiveStart.addingTimeInterval(-Double(alarmLeadTime * 60))
             guard triggerDate > now else { continue }    // Skip past events
             guard count < 64 else { break }              // iOS limit: 64 pending notifications
 

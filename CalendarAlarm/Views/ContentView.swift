@@ -72,7 +72,11 @@ struct ContentView: View {
             .navigationTitle("Nudge")
             .navigationBarTitleDisplayMode(.large)
             .refreshable {
-                syncCalendar()
+                await withCheckedContinuation { continuation in
+                    syncCalendar {
+                        continuation.resume()
+                    }
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -195,7 +199,7 @@ struct ContentView: View {
         return next.relativeTimeString
     }
 
-    private func syncCalendar() {
+    private func syncCalendar(completion: (() -> Void)? = nil) {
         isSyncing = true
         calendarManager.forceRefresh {
             notificationManager.scheduleAlarms(
@@ -203,6 +207,7 @@ struct ContentView: View {
                 mutedIDs: calendarManager.mutedEventIDs
             )
             isSyncing = false
+            completion?()
         }
     }
 }

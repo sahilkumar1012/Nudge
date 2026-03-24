@@ -19,6 +19,7 @@ import Combine
 struct NudgeApp: App {
     @StateObject private var calendarManager = CalendarManager()
     @StateObject private var notificationManager = NotificationManager()
+    @State private var showSplash = true
 
     init() {
         BackgroundSyncManager.shared.registerBackgroundTask()
@@ -26,26 +27,39 @@ struct NudgeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(calendarManager)
-                .environmentObject(notificationManager)
-                .onAppear {
-                    BackgroundSyncManager.shared.scheduleMorningSyncIfEnabled()
-                    // Donate user activities for Spotlight — this is how the app
-                    // appears in the suggestions bar when you type "calendar"
-                    donateSpotlightActivities()
-                    indexInSpotlight()
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                    calendarManager.fetchEvents {
-                        notificationManager.scheduleAlarms(
-                            for: calendarManager.upcomingEvents,
-                            mutedIDs: calendarManager.mutedEventIDs
-                        )
+            ZStack {
+                ContentView()
+                    .environmentObject(calendarManager)
+                    .environmentObject(notificationManager)
+                    .onAppear {
+                        BackgroundSyncManager.shared.scheduleMorningSyncIfEnabled()
+                        donateSpotlightActivities()
+                        indexInSpotlight()
                     }
-                    // Re-donate on every foreground so Spotlight keeps ranking us
-                    donateSpotlightActivities()
+                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                        calendarManager.fetchEvents {
+                            notificationManager.scheduleAlarms(
+                                for: calendarManager.upcomingEvents,
+                                mutedIDs: calendarManager.mutedEventIDs
+                            )
+                        }
+                        donateSpotlightActivities()
+                    }
+
+                // Splash overlay — shown on launch, fades out after 2 seconds
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    withAnimation(.easeOut(duration: 0.5)) {
+                        showSplash = false
+                    }
+                }
+            }
         }
     }
 

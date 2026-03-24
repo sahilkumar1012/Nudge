@@ -20,6 +20,9 @@ class CalendarManager: ObservableObject {
     // Apple's EventKit store — our gateway to the device's calendar data
     private let eventStore = EKEventStore()
 
+    // UserDefaults instance for persisting muted events (injectable for testing)
+    let userDefaults: UserDefaults
+
     @Published var authorizationStatus: EKAuthorizationStatus = .notDetermined
     @Published var upcomingEvents: [CalendarEvent] = []   // Events from now to N days ahead
     @Published var todayEvents: [CalendarEvent] = []      // Events happening today only
@@ -34,7 +37,8 @@ class CalendarManager: ObservableObject {
     private static let mutedKey = "mutedEventIDs"
     private var refreshTimer: Timer?   // Auto-refreshes events every 5 minutes
 
-    init() {
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
         loadMutedEvents()
         checkAuthorizationStatus()
         startAutoRefresh()
@@ -153,13 +157,13 @@ class CalendarManager: ObservableObject {
     // Muted event IDs are saved to UserDefaults for persistence.
 
     private func loadMutedEvents() {
-        if let saved = UserDefaults.standard.array(forKey: Self.mutedKey) as? [String] {
+        if let saved = userDefaults.array(forKey: Self.mutedKey) as? [String] {
             mutedEventIDs = Set(saved)
         }
     }
 
     private func saveMutedEvents() {
-        UserDefaults.standard.set(Array(mutedEventIDs), forKey: Self.mutedKey)
+        userDefaults.set(Array(mutedEventIDs), forKey: Self.mutedKey)
     }
 
     func isEventMuted(_ eventID: String) -> Bool {

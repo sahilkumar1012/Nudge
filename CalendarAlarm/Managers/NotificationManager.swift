@@ -34,6 +34,96 @@ nonisolated struct NudgeAlarmMetadata: AlarmMetadata {
     var calendarName: String
 }
 
+// =============================================================================
+// AlarmSchedulingLogic — Pure functions extracted for testability.
+//
+// These contain NO system dependencies (no AlarmKit, no UNUserNotification).
+// They handle: event filtering, trigger date computation, grouping, and titles.
+// =============================================================================
+
+enum AlarmSchedulingLogic {
+
+    struct EventWithTrigger {
+        let event: CalendarEvent
+        let triggerDate: Date
+    }
+
+    /// Builds a combined title for grouped events:
+    /// 1 event:  "Team Standup"
+    /// 2 events: "Team Standup & Design Review"
+    /// 3+ events: "Team Standup & Design Review + 1 more"
+    static func buildGroupTitle(events: [CalendarEvent]) -> String {
+        switch events.count {
+        case 0:
+            return ""
+        case 1:
+            return events[0].title
+        case 2:
+            return "\(events[0].title) & \(events[1].title)"
+        default:
+            let extra = events.count - 2
+            return "\(events[0].title) & \(events[1].title) + \(extra) more"
+        }
+    }
+
+    /// Filters events — removes all-day (unless included), muted, and beyond max date.
+    static func filterEligibleEvents(
+        _ events: [CalendarEvent],
+        mutedIDs: Set<String>,
+        includeAllDayEvents: Bool,
+        maxDate: Date
+    ) -> [CalendarEvent] {
+        events.filter { event in
+            (includeAllDayEvents || !event.isAllDay)
+            && !mutedIDs.contains(event.id)
+            && event.startDate <= maxDate
+        }
+    }
+
+    /// Calculates trigger dates for each event, accounting for lead time and all-day 8 AM rule.
+    /// Returns only events whose trigger is in the future.
+    static func computeTriggerDates(
+        for events: [CalendarEvent],
+        leadTimeMinutes: Int,
+        now: Date = Date()
+    ) -> [EventWithTrigger] {
+        let leadSeconds = Double(leadTimeMinutes * 60)
+        return events.compactMap { event -> EventWithTrigger? in
+            var effectiveStart = event.startDate
+            if event.isAllDay {
+                if let morning = Foundation.Calendar.current.date(
+                    bySettingHour: 8, minute: 0, second: 0, of: event.startDate
+                ) {
+                    effectiveStart = morning
+                }
+            }
+            let trigger = effectiveStart.addingTimeInterval(-leadSeconds)
+            guard trigger > now else { return nil }
+            return EventWithTrigger(event: event, triggerDate: trigger)
+        }
+    }
+
+    /// Groups events by trigger minute — events within the same minute share one alarm.
+    /// Returns groups sorted by trigger date, capped at `maxAlarms` (default 64).
+    static func groupByTriggerMinute(
+        _ eventsWithTriggers: [EventWithTrigger],
+        maxAlarms: Int = 64
+    ) -> [(key: String, triggerDate: Date, events: [CalendarEvent])] {
+        let grouped = Dictionary(grouping: eventsWithTriggers) { item -> String in
+            let components = Foundation.Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute],
+                from: item.triggerDate
+            )
+            return "\(components.year!)-\(components.month!)-\(components.day!)-\(components.hour!)-\(components.minute!)"
+        }
+
+        return grouped
+            .sorted { $0.value.first!.triggerDate < $1.value.first!.triggerDate }
+            .prefix(maxAlarms)
+            .map { (key: $0.key, triggerDate: $0.value.first!.triggerDate, events: $0.value.map(\.event)) }
+    }
+}
+
 // MARK: - NotificationManager
 @MainActor
 class NotificationManager: ObservableObject {
@@ -155,84 +245,39 @@ class NotificationManager: ObservableObject {
             // Step 2: Filter events — skip all-day, muted, and past events
             // Hard cap at 7 days regardless of lookAheadDays setting
             let maxDate = Date().addingTimeInterval(7 * 24 * 60 * 60)
-            let eligibleEvents = events.filter { event in
-                (includeAllDayEvents || !event.isAllDay)
-                && !mutedIDs.contains(event.id)
-                && event.startDate <= maxDate
-            }
+            let eligibleEvents = AlarmSchedulingLogic.filterEligibleEvents(
+                events, mutedIDs: mutedIDs,
+                includeAllDayEvents: includeAllDayEvents, maxDate: maxDate
+            )
 
-            // Step 3: Calculate trigger date for each event
+            // Step 3: Calculate trigger dates and group by minute
             let leadSeconds = Double(alarmLeadTimeMinutes * 60)
             let now = Date()
+            let eventsWithTriggers = AlarmSchedulingLogic.computeTriggerDates(
+                for: eligibleEvents, leadTimeMinutes: alarmLeadTimeMinutes, now: now
+            )
+            let groups = AlarmSchedulingLogic.groupByTriggerMinute(eventsWithTriggers)
 
-            struct EventWithTrigger {
-                let event: CalendarEvent
-                let triggerDate: Date
-            }
-
-            let eventsWithTriggers = eligibleEvents.compactMap { event -> EventWithTrigger? in
-                var effectiveStart = event.startDate
-                // All-day events start at midnight — fire alarm at 8 AM instead
-                if event.isAllDay {
-                    if let morning = Foundation.Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: event.startDate) {
-                        effectiveStart = morning
-                    }
-                }
-                let trigger = effectiveStart.addingTimeInterval(-leadSeconds)
-                guard trigger > now else { return nil }  // Skip past triggers
-                return EventWithTrigger(event: event, triggerDate: trigger)
-            }
-
-            // Step 4: Group events by trigger minute (events within the same minute = 1 alarm)
-            // This prevents 5 alarms firing simultaneously for overlapping meetings
-            let grouped = Dictionary(grouping: eventsWithTriggers) { item -> String in
-                let components = Foundation.Calendar.current.dateComponents(
-                    [.year, .month, .day, .hour, .minute],
-                    from: item.triggerDate
-                )
-                return "\(components.year!)-\(components.month!)-\(components.day!)-\(components.hour!)-\(components.minute!)"
-            }
-
-            // Step 5: Schedule one alarm per group
+            // Step 4: Schedule one alarm per group
             var count = 0
-            for (groupKey, group) in grouped.sorted(by: { $0.value.first!.triggerDate < $1.value.first!.triggerDate }) {
-                guard count < 64 else { break }  // iOS limit: 64 pending alarms
-
-                // Build a combined title showing up to 2 event names
-                let title = buildGroupTitle(events: group.map { $0.event })
-                let triggerDate = group.first!.triggerDate
-                let firstEvent = group.first!.event
+            for group in groups {
+                let title = AlarmSchedulingLogic.buildGroupTitle(events: group.events)
+                let firstEvent = group.events.first!
 
                 await scheduleAlarmKitAlarm(
-                    key: groupKey,
+                    key: group.key,
                     title: title,
                     tintColor: firstEvent.calendarColor,
                     calendarName: firstEvent.calendarName,
-                    triggerDate: triggerDate
+                    triggerDate: group.triggerDate
                 )
                 count += 1
             }
 
-            // Step 6: Persist alarm IDs and update count
+            // Step 5: Persist alarm IDs and update count
             persistAlarmIDs()
             scheduledCount = count
             isScheduling = false
-        }
-    }
-
-    // Builds a combined title for grouped events:
-    // 1 event:  "Team Standup"
-    // 2 events: "Team Standup & Design Review"
-    // 3+ events: "Team Standup & Design Review + 1 more"
-    private func buildGroupTitle(events: [CalendarEvent]) -> String {
-        switch events.count {
-        case 1:
-            return events[0].title
-        case 2:
-            return "\(events[0].title) & \(events[1].title)"
-        default:
-            let extra = events.count - 2
-            return "\(events[0].title) & \(events[1].title) + \(extra) more"
         }
     }
 

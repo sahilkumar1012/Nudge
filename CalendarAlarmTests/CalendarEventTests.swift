@@ -204,14 +204,16 @@ final class CalendarEventTests: XCTestCase {
     // MARK: - Equatable
 
     func testEquatable_sameId() {
-        let event1 = makeEvent(id: "same-id", title: "Meeting A")
-        let event2 = makeEvent(id: "same-id", title: "Meeting A")
+        let now = Date()
+        let event1 = makeEvent(id: "same-id", title: "Meeting A", start: now, end: now.addingTimeInterval(3600))
+        let event2 = makeEvent(id: "same-id", title: "Meeting A", start: now, end: now.addingTimeInterval(3600))
         XCTAssertEqual(event1, event2)
     }
 
     func testEquatable_differentId() {
-        let event1 = makeEvent(id: "id-1")
-        let event2 = makeEvent(id: "id-2")
+        let now = Date()
+        let event1 = makeEvent(id: "id-1", start: now, end: now.addingTimeInterval(3600))
+        let event2 = makeEvent(id: "id-2", start: now, end: now.addingTimeInterval(3600))
         XCTAssertNotEqual(event1, event2)
     }
 }

@@ -140,6 +140,8 @@ class BackgroundSyncManager {
         let includeAllDay = UserDefaults.standard.bool(forKey: "includeAllDayEvents")
 
         // Schedule a local notification for each qualifying event
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
         var count = 0
         for ekEvent in events {
             guard includeAllDay || !ekEvent.isAllDay else { continue }   // Skip all-day unless enabled
@@ -162,9 +164,6 @@ class BackgroundSyncManager {
             // Build the notification content
             let content = UNMutableNotificationContent()
             content.title = "🔔 \(ekEvent.title ?? "Event")"
-
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
             content.subtitle = formatter.string(from: startDate)
 
             var bodyParts: [String] = []

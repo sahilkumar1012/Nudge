@@ -206,7 +206,7 @@ class NotificationManager: ObservableObject {
                 await scheduleAlarmKitAlarm(
                     key: groupKey,
                     title: title,
-                    tintColor: Color(firstEvent.calendarColor),
+                    tintColor: firstEvent.calendarColor,
                     calendarName: firstEvent.calendarName,
                     triggerDate: triggerDate
                 )
@@ -301,7 +301,7 @@ class NotificationManager: ObservableObject {
             await scheduleAlarmKitAlarm(
                 key: "snooze_\(event.id)",
                 title: event.title,
-                tintColor: Color(event.calendarColor),
+                tintColor: event.calendarColor,
                 calendarName: event.calendarName,
                 triggerDate: snoozeDate
             )

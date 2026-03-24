@@ -80,33 +80,6 @@ struct EventListInlineView: View {
     }
 }
 
-// EventListView — Standalone wrapper (kept for backward compatibility)
-// Wraps EventListInlineView in its own List with pull-to-refresh.
-
-struct EventListView: View {
-    @EnvironmentObject var calendarManager: CalendarManager
-    @EnvironmentObject var notificationManager: NotificationManager
-
-    var body: some View {
-        List {
-            EventListInlineView()
-                .environmentObject(calendarManager)
-                .environmentObject(notificationManager)
-        }
-        .listStyle(.insetGrouped)
-        .refreshable {
-            await withCheckedContinuation { continuation in
-                calendarManager.forceRefresh {
-                    notificationManager.scheduleAlarms(
-                        for: calendarManager.upcomingEvents,
-                        mutedIDs: calendarManager.mutedEventIDs
-                    )
-                    continuation.resume()
-                }
-            }
-        }
-    }
-}
 
 // =============================================================================
 // EventRow — A single event row showing title, time, location, calendar, and
@@ -188,7 +161,9 @@ struct EventRow: View {
 }
 
 #Preview {
-    EventListView()
-        .environmentObject(CalendarManager())
-        .environmentObject(NotificationManager())
+    List {
+        EventListInlineView()
+            .environmentObject(CalendarManager())
+            .environmentObject(NotificationManager())
+    }
 }

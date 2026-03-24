@@ -67,10 +67,10 @@ struct EventListInlineView: View {
         .listRowBackground(Color.clear)
     }
 
-    // Group events by their formatted date for section headers
+    // Group events by day, using friendly labels ("Today", "Tomorrow", etc.)
     private var groupedEvents: [(key: String, value: [CalendarEvent])] {
         let grouped = Dictionary(grouping: calendarManager.upcomingEvents) { event in
-            event.formattedDate
+            event.startDate.relativeDayString
         }
         return grouped.sorted { first, second in
             guard let firstEvent = first.value.first,

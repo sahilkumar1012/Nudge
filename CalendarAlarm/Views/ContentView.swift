@@ -197,8 +197,7 @@ struct ContentView: View {
 
     private func syncCalendar() {
         isSyncing = true
-        calendarManager.forceRefresh()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        calendarManager.forceRefresh {
             notificationManager.scheduleAlarms(
                 for: calendarManager.upcomingEvents,
                 mutedIDs: calendarManager.mutedEventIDs
@@ -244,45 +243,6 @@ struct StatCell: View {
     }
 }
 
-// MARK: - Backwards-compat StatPill (kept for any other callsites)
-
-struct StatPill: View {
-    let icon: String
-    let value: String
-    let label: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.subheadline)
-                .foregroundColor(color)
-                .frame(width: 30, height: 30)
-                .background(color.opacity(0.12))
-                .clipShape(Circle())
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.subheadline.bold())
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(label)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
-        .frame(maxWidth: .infinity)
-    }
-}
 
 #Preview {
     ContentView()

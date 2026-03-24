@@ -79,7 +79,7 @@ struct SettingsView: View {
                 // Morning Sync
                 Section {
                     Toggle("Sync Every Morning", isOn: $morningSyncEnabled)
-                        .onChange(of: morningSyncEnabled) { enabled in
+                        .onChange(of: morningSyncEnabled) { _, enabled in
                             if enabled {
                                 BackgroundSyncManager.shared.scheduleMorningSyncIfEnabled()
                             } else {
@@ -93,7 +93,7 @@ struct SettingsView: View {
                             selection: $morningSyncTime,
                             displayedComponents: .hourAndMinute
                         )
-                        .onChange(of: morningSyncTime) { newTime in
+                        .onChange(of: morningSyncTime) { _, newTime in
                             let comps = Calendar.current.dateComponents([.hour, .minute], from: newTime)
                             UserDefaults.standard.set(comps.hour ?? 7, forKey: "morningSyncHour")
                             UserDefaults.standard.set(comps.minute ?? 0, forKey: "morningSyncMinute")

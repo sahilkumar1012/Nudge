@@ -1,5 +1,6 @@
 import AlarmKit
 import SwiftUI
+import UserNotifications
 import Combine
 
 // =============================================================================
@@ -42,6 +43,7 @@ class NotificationManager: ObservableObject {
     // User preferences (persisted via @AppStorage / UserDefaults)
     @AppStorage("alarmLeadTimeMinutes") var alarmLeadTimeMinutes: Int = 0  // Minutes before event to fire
     @AppStorage("snoozeMinutes") var snoozeMinutes: Int = 5                // Snooze duration
+    @AppStorage("includeAllDayEvents") var includeAllDayEvents: Bool = false
 
     // AlarmKit's shared manager — the system API for scheduling/cancelling alarms
     private let alarmManager = AlarmManager.shared
@@ -99,7 +101,12 @@ class NotificationManager: ObservableObject {
     }
 
     // Request AlarmKit permission. If denied, opens iOS Settings.
+    // Also requests UNUserNotification auth for background sync fallback.
     func requestAuthorization() async {
+        // Request UNUserNotification authorization (needed for background sync notifications)
+        let center = UNUserNotificationCenter.current()
+        try? await center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert])
+
         switch alarmManager.authorizationState {
         case .notDetermined:
             do {
@@ -149,7 +156,7 @@ class NotificationManager: ObservableObject {
             // Hard cap at 7 days regardless of lookAheadDays setting
             let maxDate = Date().addingTimeInterval(7 * 24 * 60 * 60)
             let eligibleEvents = events.filter { event in
-                !event.isAllDay
+                (includeAllDayEvents || !event.isAllDay)
                 && !mutedIDs.contains(event.id)
                 && event.startDate <= maxDate
             }
@@ -332,12 +339,22 @@ class NotificationManager: ObservableObject {
         }
 
         // Second: cancel ANY orphaned alarms we don't know about.
-        // This catches alarms from sessions before we started persisting IDs.
-        for await currentAlarms in alarmManager.alarmUpdates {
-            for alarm in currentAlarms {
-                try? await alarmManager.stop(id: alarm.id)
+        // Use a timeout to prevent hanging if alarmUpdates doesn't emit.
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                for await currentAlarms in self.alarmManager.alarmUpdates {
+                    for alarm in currentAlarms {
+                        try? await self.alarmManager.stop(id: alarm.id)
+                    }
+                    break  // Read one snapshot only
+                }
             }
-            break  // Read one snapshot only — don't loop forever
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 second timeout
+            }
+            // Return as soon as either task completes
+            await group.next()
+            group.cancelAll()
         }
 
         scheduledAlarms.removeAll()

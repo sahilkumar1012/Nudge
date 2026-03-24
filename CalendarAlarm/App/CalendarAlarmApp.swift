@@ -37,11 +37,12 @@ struct NudgeApp: App {
                     indexInSpotlight()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                    calendarManager.fetchEvents()
-                    notificationManager.scheduleAlarms(
-                        for: calendarManager.upcomingEvents,
-                        mutedIDs: calendarManager.mutedEventIDs
-                    )
+                    calendarManager.fetchEvents {
+                        notificationManager.scheduleAlarms(
+                            for: calendarManager.upcomingEvents,
+                            mutedIDs: calendarManager.mutedEventIDs
+                        )
+                    }
                     // Re-donate on every foreground so Spotlight keeps ranking us
                     donateSpotlightActivities()
                 }

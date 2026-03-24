@@ -48,11 +48,7 @@ class CalendarManager: ObservableObject {
     // Check current calendar permission status (granted, denied, or not yet asked)
 
     func checkAuthorizationStatus() {
-        if #available(iOS 17.0, *) {
-            authorizationStatus = EKEventStore.authorizationStatus(for: .event)
-        } else {
-            authorizationStatus = EKEventStore.authorizationStatus(for: .event)
-        }
+        authorizationStatus = EKEventStore.authorizationStatus(for: .event)
     }
 
     // Ask the user for calendar access. iOS shows a system prompt.
@@ -84,9 +80,10 @@ class CalendarManager: ObservableObject {
     // Queries the device calendar for events and updates our published arrays.
     // Called on launch, on manual sync, on foreground return, and every 5 minutes.
 
-    func fetchEvents() {
+    func fetchEvents(completion: (() -> Void)? = nil) {
         // Don't try to fetch if we don't have permission
         guard authorizationStatus == .authorized || authorizationStatus == .fullAccess else {
+            completion?()
             return
         }
 
@@ -113,21 +110,25 @@ class CalendarManager: ObservableObject {
             calendars: nil
         )
 
-        // Run the queries (EventKit returns EKEvent arrays)
-        let ekEvents = eventStore.events(matching: predicate)
-        let ekTodayEvents = eventStore.events(matching: todayPredicate)
+        // Run EventKit queries on a background thread to avoid blocking the UI
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let ekEvents = self.eventStore.events(matching: predicate)
+            let ekTodayEvents = self.eventStore.events(matching: todayPredicate)
 
-        // Convert to our CalendarEvent model and sort by start time
-        DispatchQueue.main.async { [weak self] in
-            self?.upcomingEvents = ekEvents
-                .map { CalendarEvent.from(ekEvent: $0) }
-                .sorted { $0.startDate < $1.startDate }
+            // Convert to our CalendarEvent model and update UI on main thread
+            DispatchQueue.main.async {
+                self.upcomingEvents = ekEvents
+                    .map { CalendarEvent.from(ekEvent: $0) }
+                    .sorted { $0.startDate < $1.startDate }
 
-            self?.todayEvents = ekTodayEvents
-                .map { CalendarEvent.from(ekEvent: $0) }
-                .sorted { $0.startDate < $1.startDate }
+                self.todayEvents = ekTodayEvents
+                    .map { CalendarEvent.from(ekEvent: $0) }
+                    .sorted { $0.startDate < $1.startDate }
 
-            self?.isLoading = false
+                self.isLoading = false
+                completion?()
+            }
         }
     }
 
@@ -142,8 +143,8 @@ class CalendarManager: ObservableObject {
     }
 
     // Called by the Sync button and pull-to-refresh
-    func forceRefresh() {
-        fetchEvents()
+    func forceRefresh(completion: (() -> Void)? = nil) {
+        fetchEvents(completion: completion)
     }
 
     // MARK: - Muted Events

@@ -113,10 +113,12 @@ struct ContentView: View {
                 .padding(.vertical, 4)
 
             StatCell(
-                icon: "bell.fill",
+                icon: notificationManager.scheduledCount == 0 && !calendarManager.upcomingEvents.isEmpty
+                    ? "bell.slash.fill" : "bell.fill",
                 value: "\(notificationManager.scheduledCount)",
                 label: "Alarms",
-                color: .orange
+                color: notificationManager.scheduledCount == 0 && !calendarManager.upcomingEvents.isEmpty
+                    ? .red : .orange
             )
 
             Divider()

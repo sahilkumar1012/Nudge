@@ -24,6 +24,9 @@ struct SettingsView: View {
     @AppStorage("includeAllDayEvents") private var includeAllDayEvents: Bool = false
     @AppStorage("morningSyncEnabled") private var morningSyncEnabled: Bool = false
 
+    @State private var showRemoveConfirmation = false
+    @State private var showRemovedAlert = false
+
     @State private var morningSyncTime: Date = {
         let hour = UserDefaults.standard.integer(forKey: "morningSyncHour")
         let minute = UserDefaults.standard.integer(forKey: "morningSyncMinute")
@@ -153,10 +156,7 @@ struct SettingsView: View {
                     }
 
                     Button(role: .destructive) {
-                        notificationManager.removeAllAlarms()
-                        dismiss() // dismiss the settings panel so it doesn't trigger refresh
-                        // but this is showing events on the home page.
-                        // TODO create a notice that all alarms are dismissed until further sync.
+                        showRemoveConfirmation = true
                     } label: {
                         Label("Remove All Alarms", systemImage: "bell.slash")
                     }
@@ -198,6 +198,28 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
+            }
+            .alert("Remove All Alarms?", isPresented: $showRemoveConfirmation) {
+                Button("Remove All", role: .destructive) {
+                    notificationManager.removeAllAlarms()
+                    showRemovedAlert = true
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This will clear all \(notificationManager.scheduledCount) scheduled alarm\(notificationManager.scheduledCount == 1 ? "" : "s"). You won't be nudged until you sync again.")
+            }
+            .alert("All Alarms Removed", isPresented: $showRemovedAlert) {
+                Button("Re-sync Now") {
+                    calendarManager.forceRefresh {
+                        notificationManager.scheduleAlarms(
+                            for: calendarManager.upcomingEvents,
+                            mutedIDs: calendarManager.mutedEventIDs
+                        )
+                    }
+                }
+                Button("Later", role: .cancel) { }
+            } message: {
+                Text("All alarms have been cleared. Tap Re-sync to reschedule alarms for your upcoming events.")
             }
         }
     }

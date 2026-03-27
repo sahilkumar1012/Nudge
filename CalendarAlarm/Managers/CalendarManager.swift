@@ -58,8 +58,20 @@ class CalendarManager: ObservableObject {
     }
 
     // Ask the user for calendar access. iOS shows a system prompt.
-    // If granted, we immediately fetch events.
+    // If already denied, opens iOS Settings so the user can re-enable manually.
     func requestAccess() {
+        let status = EKEventStore.authorizationStatus(for: .event)
+
+        // If denied/restricted, iOS won't show the prompt again — open Settings
+        if status == .denied || status == .restricted {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(url)
+                }
+            }
+            return
+        }
+
         if #available(iOS 17.0, *) {
             // iOS 17+ requires "full access" request
             eventStore.requestFullAccessToEvents { [weak self] granted, error in

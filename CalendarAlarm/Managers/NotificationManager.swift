@@ -195,7 +195,7 @@ class NotificationManager: ObservableObject {
     func requestAuthorization() async {
         // Request UNUserNotification authorization (needed for background sync notifications)
         let center = UNUserNotificationCenter.current()
-        try? await center.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert])
+        try? await center.requestAuthorization(options: [.alert, .sound, .badge])
 
         switch alarmManager.authorizationState {
         case .notDetermined:

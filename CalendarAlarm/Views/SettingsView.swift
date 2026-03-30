@@ -170,9 +170,9 @@ struct SettingsView: View {
 
                 // Support & Info
                 Section {
-//                    Link(destination: URL(string: "https://www.codeharmony.dev/nudge/privacy")!) {
-//                        Label("Privacy Policy", systemImage: "hand.raised.fill")
-//                    }
+                    Link(destination: URL(string: "https://www.codeharmony.dev/nudge/privacy")!) {
+                        Label("Privacy Policy", systemImage: "hand.raised.fill")
+                    }
 
                     Link(destination: URL(string: "mailto:sahilpcs@hotmail.com?subject=Nudge%20Feedback")!) {
                         Label("Contact Support", systemImage: "envelope.fill")

@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import CalendarAlarm
+@testable import Nudge
 
 // =============================================================================
 // AlarmSchedulingLogicTests — Tests for the pure scheduling logic extracted

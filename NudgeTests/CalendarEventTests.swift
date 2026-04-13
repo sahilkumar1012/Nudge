@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import CalendarAlarm
+@testable import Nudge
 
 // =============================================================================
 // CalendarEventTests — Tests for CalendarEvent model computed properties.

@@ -54,9 +54,9 @@ Built with **SwiftUI** + **AlarmKit** (iOS 26+). Fully offline, no account neede
 ## Project Structure
 
 ```
-CalendarAlarm/
+Nudge/
 ├── App/
-│   └── CalendarAlarmApp.swift       # Entry point (NudgeApp), Spotlight indexing
+│   └── NudgeApp.swift       # Entry point (NudgeApp), Spotlight indexing
 ├── Models/
 │   └── CalendarEvent.swift          # Event data model (from EKEvent)
 ├── Managers/
@@ -134,7 +134,7 @@ CalendarAlarm/
 ```bash
 git clone https://github.com/sahilkumar1012/Nudge.git
 cd Nudge
-open CalendarAlarm.xcodeproj
+open Nudge.xcodeproj
 ```
 
 1. Open in Xcode

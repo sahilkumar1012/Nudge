@@ -1,6 +1,6 @@
 import XCTest
 import SwiftUI
-@testable import CalendarAlarm
+@testable import Nudge
 
 // =============================================================================
 // CalendarManagerMuteTests — Tests for CalendarManager's muting logic.

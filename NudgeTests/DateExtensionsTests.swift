@@ -1,5 +1,5 @@
 import XCTest
-@testable import CalendarAlarm
+@testable import Nudge
 
 // =============================================================================
 // DateExtensionsTests — Tests for Date+Extensions.swift
